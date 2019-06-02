@@ -1,6 +1,14 @@
 var ImagePreloader = (function(){
+    if (document.body === undefined) {
+        return function ImagePreloader(){
+            this.loadAssets = function(assets, cb) {};
+            this.setAssetsPath = function(path) {};
+            this.setPath = function(path) {};
+            this.loaded = function() { return true; };
+        };
+    }
 
-    var proxyImage = (function(){
+    var proxyImage = document === undefined ? null : (function(){
         var canvas = createTag('canvas');
         canvas.width = 1;
         canvas.height = 1;

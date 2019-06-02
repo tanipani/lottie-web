@@ -2,6 +2,7 @@ var AnimationItem = function () {
     this._cbs = [];
     this.name = '';
     this.path = '';
+    this.animation = null;
     this.isLoaded = false;
     this.currentFrame = 0;
     this.currentRawFrame = 0;
@@ -42,6 +43,11 @@ AnimationItem.prototype.setParams = function(params) {
     switch(animType){
         case 'canvas':
             this.renderer = new CanvasRenderer(this, params.rendererSettings);
+            break;
+        case 'paintworklet':
+            // TODO: Implicitly use paintworklet renderer for 'canvas' type when
+            // all required features are supported.
+            this.renderer = new PaintWorkletRenderer(this, params.rendererSettings);
             break;
         case 'svg':
             this.renderer = new SVGRenderer(this, params.rendererSettings);
@@ -223,7 +229,7 @@ AnimationItem.prototype.waitForFontsLoaded = function(){
     if(this.renderer.globalData.fontManager.loaded()){
         this.checkLoaded();
     }else{
-        setTimeout(this.waitForFontsLoaded.bind(this),20);
+        window.setTimeout(this.waitForFontsLoaded.bind(this),20);
     }
 }
 
@@ -235,7 +241,7 @@ AnimationItem.prototype.checkLoaded = function () {
             expressionsPlugin.initExpressions(this);
         }
         this.renderer.initItems();
-        setTimeout(function() {
+        window.setTimeout(function() {
             this.trigger('DOMLoaded');
         }.bind(this), 0);
         this.gotoFrame();
@@ -246,7 +252,7 @@ AnimationItem.prototype.checkLoaded = function () {
 };
 
 AnimationItem.prototype.resize = function () {
-    this.renderer.updateContainerSize();
+    this.renderer.updateContainerSize(true);
 };
 
 AnimationItem.prototype.setSubframe = function(flag){
@@ -259,8 +265,12 @@ AnimationItem.prototype.gotoFrame = function () {
     if(this.timeCompleted !== this.totalFrames && this.currentFrame > this.timeCompleted){
         this.currentFrame = this.timeCompleted;
     }
-    this.trigger('enterFrame');
-    this.renderFrame();
+    if (this.animation) {
+        this.animation.currentTime = this.currentFrame / this.totalFrames * this.getDuration();
+    } else {
+        this.trigger('enterFrame');
+        this.renderFrame();
+    }
 };
 
 AnimationItem.prototype.renderFrame = function () {
@@ -278,7 +288,15 @@ AnimationItem.prototype.play = function (name) {
         this.isPaused = false;
         if(this._idle){
             this._idle = false;
-            this.trigger('_active');
+            var keyframes = this.renderer.cssKeyframes();
+            if (!keyframes) {
+                this.trigger('_active');
+            } else {
+                this.animation = this.wrapper.animate(keyframes, {
+                    duration: this.getDuration() * 1000,
+                    iterations: this.loop ? Infinity : 1,
+                });
+            }
         }
     }
 };
@@ -290,7 +308,10 @@ AnimationItem.prototype.pause = function (name) {
     if(this.isPaused === false){
         this.isPaused = true;
         this._idle = true;
-        this.trigger('_idle');
+        if (this.animation)
+            this.animation.pause();
+        else
+            this.trigger('_idle');
     }
 };
 

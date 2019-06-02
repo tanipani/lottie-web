@@ -4153,8 +4153,16 @@ var buildShapeString = function(pathNodes, length, closed, mat) {
         return shapeString;
 }
 var ImagePreloader = (function(){
+    if (document.body === undefined) {
+        return function ImagePreloader(){
+            this.loadAssets = function(assets, cb) {};
+            this.setAssetsPath = function(path) {};
+            this.setPath = function(path) {};
+            this.loaded = function() { return true; };
+        };
+    }
 
-    var proxyImage = (function(){
+    var proxyImage = document === undefined ? null : (function(){
         var canvas = createTag('canvas');
         canvas.width = 1;
         canvas.height = 1;
@@ -5736,6 +5744,10 @@ BaseRenderer.prototype.checkLayers = function(num){
     this.checkPendingElements();
 };
 
+BaseRenderer.prototype.cssKeyframes = function() {
+    return null;
+}
+
 BaseRenderer.prototype.createItem = function(layer){
     switch(layer.ty){
         case 2:
@@ -6232,6 +6244,12 @@ CanvasRenderer.prototype.restore = function(actionFlag){
     }
 };
 
+CanvasRenderer.prototype.updateContext = function(context) {
+    this.globalData.canvasContext = this.canvasContext = this.renderConfig.context = context;
+    this.updateContainerSize(false);
+    this.globalData._mdf = true;
+}
+
 CanvasRenderer.prototype.configAnimation = function(animData){
     if(this.animationItem.wrapper){
         this.animationItem.container = createTag('canvas');
@@ -6269,7 +6287,7 @@ CanvasRenderer.prototype.configAnimation = function(animData){
     this.updateContainerSize();
 };
 
-CanvasRenderer.prototype.updateContainerSize = function () {
+CanvasRenderer.prototype.updateContainerSize = function (redraw) {
     this.reset();
     var elementWidth,elementHeight;
     if(this.animationItem.wrapper && this.animationItem.container){
@@ -6337,7 +6355,8 @@ CanvasRenderer.prototype.updateContainerSize = function () {
     this.canvasContext.closePath();
     this.canvasContext.clip();
 
-    this.renderFrame(this.renderedFrame, true);
+    if (redraw)
+        this.renderFrame(this.renderedFrame, true);
 };
 
 CanvasRenderer.prototype.destroy = function () {
@@ -6421,6 +6440,140 @@ CanvasRenderer.prototype.hide = function(){
 
 CanvasRenderer.prototype.show = function(){
     this.animationItem.container.style.display = 'block';
+};
+
+function determinePaintWorkletScriptPath(currentScript) {
+    if (currentScript.endsWith('/PaintWorkletRenderer.js'))
+        return '../build/player/lottie_paintworklet.js';
+    var m = currentScript.match(/(^.*lottie)(_[^.])?(\.min)?\.js$/);
+    if (!m)
+        return '';
+    return m[1] + '_paintworklet.js';
+}
+var LOTTIE_SCRIPT_SRC = determinePaintWorkletScriptPath(document.currentScript.getAttribute('src'));
+var PAINT_WORKLET_RENDERER_NUM = 1;
+var registerProperty = CSS && CSS.registerProperty;
+if (registerProperty)
+    registerProperty({name: '--progress', 'syntax': '<number>', inherits: false, initialValue: 0});
+
+function PaintWorkletRenderer(animationItem, config){
+    this.animationItem = animationItem;
+    this.renderConfig = {
+        clearCanvas: (config && config.clearCanvas !== undefined) ? config.clearCanvas : true,
+        progressiveLoad: (config && config.progressiveLoad) || false,
+        preserveAspectRatio: (config && config.preserveAspectRatio) || 'xMidYMid meet',
+        imagePreserveAspectRatio: (config && config.imagePreserveAspectRatio) || 'xMidYMid slice',
+        className: (config && config.className) || ''
+    };
+    this.renderConfig.dpr = (config && config.dpr) || 1;
+    if (this.animationItem.wrapper) {
+        this.renderConfig.dpr = (config && config.dpr) || window.devicePixelRatio || 1;
+    }
+    this.globalData = {
+        frameNum: -1,
+        _mdf: false,
+        renderConfig: this.renderConfig,
+    };
+    this.completeLayers = false;
+    this.rendererType = 'canvas';
+}
+extendPrototype([BaseRenderer],PaintWorkletRenderer);
+
+PaintWorkletRenderer.prototype.cssKeyframes = function() {
+    return registerProperty ?
+        [{'--progress': 0}, {'--progress': 1}] :
+        [{'-webkit-mask-position-x': '0px'}, {'-webkit-mask-position-x': '1px'}];
+}
+
+PaintWorkletRenderer.prototype.createShape = function (data) {
+    return new CVShapeElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createText = function (data) {
+    return new CVTextElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createImage = function (data) {
+    return new CVImageElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createComp = function (data) {
+    return new CVCompElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createSolid = function (data) {
+    return new CVSolidElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createNull = SVGRenderer.prototype.createNull;
+
+PaintWorkletRenderer.prototype.configAnimation = function(animData){
+    if(!this.animationItem.wrapper){
+        throw new Exception('Wrapper element required for paintworklet renderer.')
+    }
+    if(this.renderConfig.className) {
+        this.animationItem.wrapper.setAttribute('class', this.renderConfig.className);
+    }
+    this.data = animData;
+    this.layers = animData.layers;
+    this.setupGlobalData(animData, document.body);
+    // TODO: Create paintworklet.
+    var painterName = 'lottie-pw-' + PAINT_WORKLET_RENDERER_NUM++;
+    var animDataJSON = JSON.stringify(animData);
+    var animationProperty = registerProperty ? '--progress' : '-webkit-mask-position-x';
+    var painterScript = `import { lottiejs } from "${LOTTIE_SCRIPT_SRC}";
+
+var animData = ${animDataJSON};
+registerPaint('${painterName}', class {
+    static get inputProperties() { return ['${animationProperty}']; }
+
+    constructor() {
+        this.animation = null;
+    }
+
+    paint(ctx, size, styleMap) {
+        ctx.canvas = {width: size.width, height: size.height};
+        if (!this.animation)
+            this.animation = lottiejs.loadAnimation({animationData: animData, renderer: 'canvas', rendererSettings: {context: ctx}});
+        let progress = parseFloat(styleMap.get('${animationProperty}').toString());
+        this.animation.renderer.updateContext(ctx);
+        this.animation.setCurrentRawFrameValue(progress * this.animation.totalFrames);
+    }
+});`;
+    var blob = new Blob([painterScript], {type: 'text/javascript'});
+    var element = this.animationItem.wrapper;
+    var url = URL.createObjectURL(blob);
+    CSS.paintWorklet.addModule(url).then(function() {
+        element.style.background = `paint(${painterName})`;
+    });
+};
+
+PaintWorkletRenderer.prototype.updateContainerSize = function () {};
+
+PaintWorkletRenderer.prototype.destroy = function () {
+    this.destroyed = true;
+};
+
+PaintWorkletRenderer.prototype.renderFrame = function(num, forceRender){
+    if (registerProperty)
+        this.animationItem.wrapper.style.setProperty('--progress', num / this.animationItem.totalFrames);
+    else
+        this.animationItem.wrapper.style.setProperty('-webkit-mask-position-x', (num / this.animationItem.totalFrames) + 'px');
+};
+
+PaintWorkletRenderer.prototype.buildItem = function(pos){
+};
+
+PaintWorkletRenderer.prototype.createItem = function(pos){
+};
+
+PaintWorkletRenderer.prototype.checkPendingElements  = function(){
+};
+
+PaintWorkletRenderer.prototype.hide = function(){
+};
+
+PaintWorkletRenderer.prototype.show = function(){
 };
 
 function MaskElement(data,element,globalData) {
@@ -8656,8 +8809,6 @@ function CVTextElement(data, globalData, comp){
 }
 extendPrototype([BaseElement,TransformElement,CVBaseElement,HierarchyElement,FrameElement,RenderableElement,ITextElement], CVTextElement);
 
-CVTextElement.prototype.tHelper = createTag('canvas').getContext('2d');
-
 CVTextElement.prototype.buildNewText = function(){
     var documentData = this.textProperty.currentData;
     this.renderedLetters = createSizedArray(documentData.l ? documentData.l.length : 0);
@@ -8683,7 +8834,6 @@ CVTextElement.prototype.buildNewText = function(){
     this.stroke = hasStroke;
     this.values.fValue = documentData.finalSize + 'px '+ this.globalData.fontManager.getFontByName(documentData.f).fFamily;
     len = documentData.finalText.length;
-    //this.tHelper.font = this.values.fValue;
     var charData, shapeData, k, kLen, shapes, j, jLen, pathNodes, commands, pathArr, singleShape = this.data.singleShape;
     var trackingOffset = documentData.tr/1000*documentData.finalSize;
     var xPos = 0, yPos = 0, firstLine = true;
@@ -9053,6 +9203,7 @@ var AnimationItem = function () {
     this._cbs = [];
     this.name = '';
     this.path = '';
+    this.animation = null;
     this.isLoaded = false;
     this.currentFrame = 0;
     this.currentRawFrame = 0;
@@ -9093,6 +9244,11 @@ AnimationItem.prototype.setParams = function(params) {
     switch(animType){
         case 'canvas':
             this.renderer = new CanvasRenderer(this, params.rendererSettings);
+            break;
+        case 'paintworklet':
+            // TODO: Implicitly use paintworklet renderer for 'canvas' type when
+            // all required features are supported.
+            this.renderer = new PaintWorkletRenderer(this, params.rendererSettings);
             break;
         case 'svg':
             this.renderer = new SVGRenderer(this, params.rendererSettings);
@@ -9274,7 +9430,7 @@ AnimationItem.prototype.waitForFontsLoaded = function(){
     if(this.renderer.globalData.fontManager.loaded()){
         this.checkLoaded();
     }else{
-        setTimeout(this.waitForFontsLoaded.bind(this),20);
+        window.setTimeout(this.waitForFontsLoaded.bind(this),20);
     }
 }
 
@@ -9286,7 +9442,7 @@ AnimationItem.prototype.checkLoaded = function () {
             expressionsPlugin.initExpressions(this);
         }
         this.renderer.initItems();
-        setTimeout(function() {
+        window.setTimeout(function() {
             this.trigger('DOMLoaded');
         }.bind(this), 0);
         this.gotoFrame();
@@ -9297,7 +9453,7 @@ AnimationItem.prototype.checkLoaded = function () {
 };
 
 AnimationItem.prototype.resize = function () {
-    this.renderer.updateContainerSize();
+    this.renderer.updateContainerSize(true);
 };
 
 AnimationItem.prototype.setSubframe = function(flag){
@@ -9310,8 +9466,12 @@ AnimationItem.prototype.gotoFrame = function () {
     if(this.timeCompleted !== this.totalFrames && this.currentFrame > this.timeCompleted){
         this.currentFrame = this.timeCompleted;
     }
-    this.trigger('enterFrame');
-    this.renderFrame();
+    if (this.animation) {
+        this.animation.currentTime = this.currentFrame / this.totalFrames * this.getDuration();
+    } else {
+        this.trigger('enterFrame');
+        this.renderFrame();
+    }
 };
 
 AnimationItem.prototype.renderFrame = function () {
@@ -9329,7 +9489,15 @@ AnimationItem.prototype.play = function (name) {
         this.isPaused = false;
         if(this._idle){
             this._idle = false;
-            this.trigger('_active');
+            var keyframes = this.renderer.cssKeyframes();
+            if (!keyframes) {
+                this.trigger('_active');
+            } else {
+                this.animation = this.wrapper.animate(keyframes, {
+                    duration: this.getDuration() * 1000,
+                    iterations: this.loop ? Infinity : 1,
+                });
+            }
         }
     }
 };
@@ -9341,7 +9509,10 @@ AnimationItem.prototype.pause = function (name) {
     if(this.isPaused === false){
         this.isPaused = true;
         this._idle = true;
-        this.trigger('_idle');
+        if (this.animation)
+            this.animation.pause();
+        else
+            this.trigger('_idle');
     }
 };
 

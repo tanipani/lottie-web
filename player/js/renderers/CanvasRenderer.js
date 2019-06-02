@@ -135,6 +135,12 @@ CanvasRenderer.prototype.restore = function(actionFlag){
     }
 };
 
+CanvasRenderer.prototype.updateContext = function(context) {
+    this.globalData.canvasContext = this.canvasContext = this.renderConfig.context = context;
+    this.updateContainerSize(false);
+    this.globalData._mdf = true;
+}
+
 CanvasRenderer.prototype.configAnimation = function(animData){
     if(this.animationItem.wrapper){
         this.animationItem.container = createTag('canvas');
@@ -172,7 +178,7 @@ CanvasRenderer.prototype.configAnimation = function(animData){
     this.updateContainerSize();
 };
 
-CanvasRenderer.prototype.updateContainerSize = function () {
+CanvasRenderer.prototype.updateContainerSize = function (redraw) {
     this.reset();
     var elementWidth,elementHeight;
     if(this.animationItem.wrapper && this.animationItem.container){
@@ -240,7 +246,8 @@ CanvasRenderer.prototype.updateContainerSize = function () {
     this.canvasContext.closePath();
     this.canvasContext.clip();
 
-    this.renderFrame(this.renderedFrame, true);
+    if (redraw)
+        this.renderFrame(this.renderedFrame, true);
 };
 
 CanvasRenderer.prototype.destroy = function () {

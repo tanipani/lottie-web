@@ -15,6 +15,10 @@ BaseRenderer.prototype.checkLayers = function(num){
     this.checkPendingElements();
 };
 
+BaseRenderer.prototype.cssKeyframes = function() {
+    return null;
+}
+
 BaseRenderer.prototype.createItem = function(layer){
     switch(layer.ty){
         case 2:

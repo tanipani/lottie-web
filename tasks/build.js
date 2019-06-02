@@ -33,7 +33,7 @@ function parseHTML(html) {
 function getScripts($) {
 	return new Promise((resolve, reject)=> {
 		try {
-			const defaultBuilds = ['full','svg_light','svg','canvas','html', 'canvas_light', 'html_light']
+			const defaultBuilds = ['full','svg_light','svg','canvas','html', 'canvas_light', 'html_light', 'paintworklet']
 			const scriptNodes = []
 			let shouldAddToScripts = false;
 			$("head").contents().each((index, node) => {
@@ -80,11 +80,12 @@ function concatScripts(scripts, build) {
 	});
 }
 
-function wrapScriptWithModule(code) {
+function wrapScriptWithModule(code, mode) {
 	return new Promise((resolve, reject)=>{
 		try {
 			// Wrapping with module
-			let wrappedCode = fs.readFileSync(`${rootFolder}js/module.js`, "utf8");
+			let module = mode ? ('module_' + mode + '.js') : 'module.js';
+			let wrappedCode = fs.readFileSync(`${rootFolder}js/${module}`, "utf8");
 			wrappedCode = wrappedCode.replace('/*<%= contents %>*/',code);
 			wrappedCode = wrappedCode.replace('[[BM_VERSION]]',bm_version);
 			resolve(wrappedCode);
@@ -111,7 +112,7 @@ function uglifyCode(code) {
 
 async function buildVersion(scripts, version) {
 	const code = await concatScripts(scripts, version.build)
-	const wrappedCode = await wrapScriptWithModule(code)
+	const wrappedCode = await wrapScriptWithModule(code, version.mode)
 	const processedCode = await version.process(wrappedCode)
 	const saved = await save(processedCode, version.fileName)
 	return true
@@ -205,6 +206,12 @@ function buildVersions(scripts) {
 			fileName: 'lottie_light_html.min.js',
 			build: 'html_light',
 			process: uglifyCode
+		},
+		{ // TODO: Upgrade uglifier to support export and let and add minified build.
+			fileName: 'lottie_paintworklet.js',
+			build: 'paintworklet',
+			process: noop,
+			mode: 'es',
 		}];
 
 		const buildProcesses = versions.map((version)=>{
