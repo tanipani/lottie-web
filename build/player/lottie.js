@@ -6846,6 +6846,10 @@ registerPaint('${painterName}', class {
     var url = URL.createObjectURL(blob);
     CSS.paintWorklet.addModule(url).then(function() {
         element.style.background = `paint(${painterName})`;
+    }).catch(function(err) {
+        console.error('Error loading paintworklet', err);
+    }).finally(function() {
+        URL.revokeObjectURL(url);
     });
 };
 
