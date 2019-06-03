@@ -6450,7 +6450,7 @@ function determinePaintWorkletScriptPath(currentScript) {
         return '';
     return m[1] + '_paintworklet.js';
 }
-var LOTTIE_SCRIPT_SRC = determinePaintWorkletScriptPath(document.currentScript.getAttribute('src'));
+var LOTTIE_SCRIPT_SRC = determinePaintWorkletScriptPath(document.currentScript.src);
 var PAINT_WORKLET_RENDERER_NUM = 1;
 var registerProperty = CSS && CSS.registerProperty;
 if (registerProperty)
