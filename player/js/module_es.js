@@ -3,6 +3,7 @@ var navigator = {userAgent: 'unknown'};
 var window = {
     requestAnimationFrame: function(fn) {},
     setTimeout: function(fn, ms) { fn(); },
+    devicePixelRatio,
 };
 var document = {body: undefined};
 export let lottiejs = (function(window) {
