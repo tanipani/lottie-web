@@ -6443,8 +6443,16 @@ CanvasRenderer.prototype.show = function(){
 };
 
 function determinePaintWorkletScriptPath(currentScript) {
+    function resolveRelative(path, relative) {
+        var abspath = path.substring(0, path.lastIndexOf('/')).split('/');
+        while (relative.startsWith('../')) {
+            abspath.pop();
+            relative = relative.substring(3);
+        }
+        return abspath.join('/') + '/' + relative;
+    }
     if (currentScript.endsWith('/PaintWorkletRenderer.js'))
-        return '../build/player/lottie_paintworklet.js';
+        return resolveRelative(currentScript, '../../../build/player/lottie_paintworklet.js');
     var m = currentScript.match(/(^.*lottie)(_[^.])?(\.min)?\.js$/);
     if (!m)
         return '';
