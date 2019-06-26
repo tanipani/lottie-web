@@ -6537,15 +6537,12 @@ PaintWorkletRenderer.prototype.configAnimation = function(animData){
         "       this.animation = null;\n" +
         "   }\n" +
         "   paint(ctx, size, styleMap) {\n" +
-        "       ctx.canvas = {width: size.width * devicePixelRatio, height: size.height * devicePixelRatio};\n" +
-        "       ctx.save();\n" +
-        "       ctx.scale(devicePixelRatio, devicePixelRatio);\n" +
+        "       ctx.canvas = {width: size.width, height: size.height};\n" +
         "       if (!this.animation)\n" +
         "           this.animation = lottiejs.loadAnimation({animationData: animData, renderer: 'canvas', rendererSettings: {context: ctx}});\n" +
         "       let progress = parseFloat(styleMap.get('" + animationProperty + "').toString());\n" +
         "       this.animation.renderer.updateContext(ctx);\n" +
         "       this.animation.setCurrentRawFrameValue(progress * this.animation.totalFrames);\n" +
-        "       ctx.restore();\n" +
         "   }\n" +
         "});";
     var blob = new Blob([painterScript], {type: 'text/javascript'});
