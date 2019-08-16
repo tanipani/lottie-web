@@ -10278,7 +10278,7 @@ AnimationItem.prototype.gotoFrame = function () {
         this.currentFrame = this.timeCompleted;
     }
     if (this.animation) {
-        this.animation.currentTime = this.currentFrame / this.totalFrames * this.getDuration();
+        this.animation.currentTime = this.currentFrame / this.totalFrames * this.getDuration() * 1000;
     } else {
         this.trigger('enterFrame');
         this.renderFrame();
