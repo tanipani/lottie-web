@@ -5943,7 +5943,7 @@ SVGRenderer.prototype.createSolid = function (data) {
     return new ISolidElement(data,this.globalData,this);
 };
 
-SVGRenderer.prototype.configAnimation = function(animData){
+SVGRenderer.prototype.configAnimation = function(animData, cb){
     this.svgElement.setAttribute('xmlns','http://www.w3.org/2000/svg');
     if(this.renderConfig.viewBoxSize) {
         this.svgElement.setAttribute('viewBox',this.renderConfig.viewBoxSize);
@@ -5986,6 +5986,7 @@ SVGRenderer.prototype.configAnimation = function(animData){
     defs.appendChild(maskElement);
     this.layers = animData.layers;
     this.elements = createSizedArray(animData.layers.length);
+    cb();
 };
 
 
@@ -8954,6 +8955,7 @@ var AnimationItem = function () {
     this.autoplay = false;
     this.loop = true;
     this.renderer = null;
+    this.rendererLoaded = false;
     this.animationID = createElementID();
     this.assetsPath = '';
     this.timeCompleted = 0;
@@ -9141,7 +9143,8 @@ AnimationItem.prototype.configAnimation = function (animData) {
     }
     this.animationData = animData;
     this.totalFrames = Math.floor(this.animationData.op - this.animationData.ip);
-    this.renderer.configAnimation(animData);
+    this.rendererLoaded = false;
+    this.renderer.configAnimation(animData, this.onRendererLoaded.bind(this));
     if(!animData.assets){
         animData.assets = [];
     }
@@ -9158,6 +9161,11 @@ AnimationItem.prototype.configAnimation = function (animData) {
     this.waitForFontsLoaded();
 };
 
+AnimationItem.prototype.onRendererLoaded = function() {
+    this.rendererLoaded = true;
+    this.checkLoaded()
+}
+
 AnimationItem.prototype.waitForFontsLoaded = function(){
     if(!this.renderer) {
         return;
@@ -9170,7 +9178,7 @@ AnimationItem.prototype.waitForFontsLoaded = function(){
 }
 
 AnimationItem.prototype.checkLoaded = function () {
-    if (!this.isLoaded && this.renderer.globalData.fontManager.loaded() && (this.imagePreloader.loaded() || this.renderer.rendererType !== 'canvas')) {
+    if (!this.isLoaded && this.rendererLoaded && this.renderer.globalData.fontManager.loaded() && (this.imagePreloader.loaded() || this.renderer.rendererType !== 'canvas')) {
         this.isLoaded = true;
         dataManager.completeData(this.animationData, this.renderer.globalData.fontManager);
         if(expressionsPlugin){

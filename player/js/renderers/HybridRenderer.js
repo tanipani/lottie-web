@@ -195,7 +195,7 @@ HybridRenderer.prototype.addTo3dContainer = function(elem,pos){
     }
 };
 
-HybridRenderer.prototype.configAnimation = function(animData){
+HybridRenderer.prototype.configAnimation = function(animData, cb){
     var resizerElem = createTag('div');
     var wrapper = this.animationItem.wrapper;
     resizerElem.style.width = animData.w+'px';
@@ -224,6 +224,7 @@ HybridRenderer.prototype.configAnimation = function(animData){
     this.layerElement = this.resizerElem;
     this.build3dContainers();
     this.updateContainerSize();
+    cb();
 };
 
 HybridRenderer.prototype.destroy = function () {

@@ -79,7 +79,7 @@ SVGRenderer.prototype.createSolid = function (data) {
     return new ISolidElement(data,this.globalData,this);
 };
 
-SVGRenderer.prototype.configAnimation = function(animData){
+SVGRenderer.prototype.configAnimation = function(animData, cb){
     this.svgElement.setAttribute('xmlns','http://www.w3.org/2000/svg');
     if(this.renderConfig.viewBoxSize) {
         this.svgElement.setAttribute('viewBox',this.renderConfig.viewBoxSize);
@@ -122,6 +122,7 @@ SVGRenderer.prototype.configAnimation = function(animData){
     defs.appendChild(maskElement);
     this.layers = animData.layers;
     this.elements = createSizedArray(animData.layers.length);
+    cb();
 };
 
 

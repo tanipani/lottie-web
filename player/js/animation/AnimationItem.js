@@ -18,6 +18,7 @@ var AnimationItem = function () {
     this.autoplay = false;
     this.loop = true;
     this.renderer = null;
+    this.rendererLoaded = false;
     this.animationID = createElementID();
     this.assetsPath = '';
     this.timeCompleted = 0;
@@ -205,7 +206,8 @@ AnimationItem.prototype.configAnimation = function (animData) {
     }
     this.animationData = animData;
     this.totalFrames = Math.floor(this.animationData.op - this.animationData.ip);
-    this.renderer.configAnimation(animData);
+    this.rendererLoaded = false;
+    this.renderer.configAnimation(animData, this.onRendererLoaded.bind(this));
     if(!animData.assets){
         animData.assets = [];
     }
@@ -222,6 +224,11 @@ AnimationItem.prototype.configAnimation = function (animData) {
     this.waitForFontsLoaded();
 };
 
+AnimationItem.prototype.onRendererLoaded = function() {
+    this.rendererLoaded = true;
+    this.checkLoaded()
+}
+
 AnimationItem.prototype.waitForFontsLoaded = function(){
     if(!this.renderer) {
         return;
@@ -234,7 +241,7 @@ AnimationItem.prototype.waitForFontsLoaded = function(){
 }
 
 AnimationItem.prototype.checkLoaded = function () {
-    if (!this.isLoaded && this.renderer.globalData.fontManager.loaded() && (this.imagePreloader.loaded() || this.renderer.rendererType !== 'canvas')) {
+    if (!this.isLoaded && this.rendererLoaded && this.renderer.globalData.fontManager.loaded() && (this.imagePreloader.loaded() || this.renderer.rendererType !== 'canvas')) {
         this.isLoaded = true;
         dataManager.completeData(this.animationData, this.renderer.globalData.fontManager);
         if(expressionsPlugin){

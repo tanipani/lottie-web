@@ -141,7 +141,7 @@ CanvasRenderer.prototype.updateContext = function(context) {
     this.globalData._mdf = true;
 }
 
-CanvasRenderer.prototype.configAnimation = function(animData){
+CanvasRenderer.prototype.configAnimation = function(animData, cb){
     if(this.animationItem.wrapper){
         this.animationItem.container = createTag('canvas');
         this.animationItem.container.style.width = '100%';
@@ -176,6 +176,7 @@ CanvasRenderer.prototype.configAnimation = function(animData){
     this.elements = createSizedArray(animData.layers.length);
 
     this.updateContainerSize();
+    cb();
 };
 
 CanvasRenderer.prototype.updateContainerSize = function (redraw) {

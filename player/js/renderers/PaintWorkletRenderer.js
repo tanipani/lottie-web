@@ -71,7 +71,7 @@ PaintWorkletRenderer.prototype.createSolid = function (data) {
 
 PaintWorkletRenderer.prototype.createNull = SVGRenderer.prototype.createNull;
 
-PaintWorkletRenderer.prototype.configAnimation = function(animData){
+PaintWorkletRenderer.prototype.configAnimation = function(animData, cb){
     if(!this.animationItem.wrapper){
         throw new Exception('Wrapper element required for paintworklet renderer.')
     }
@@ -105,7 +105,8 @@ PaintWorkletRenderer.prototype.configAnimation = function(animData){
     var element = this.animationItem.wrapper;
     var url = URL.createObjectURL(blob);
     CSS.paintWorklet.addModule(url).then(function() {
-        element.style.background = 'paint(' + painterName + ')';
+        element.style.backgroundImage = 'paint(' + painterName + ')';
+        cb();
     }).catch(function(err) {
         console.error('Error loading paintworklet', err);
     }).finally(function() {
