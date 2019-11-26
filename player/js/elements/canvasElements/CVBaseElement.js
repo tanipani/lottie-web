@@ -33,6 +33,7 @@ CVBaseElement.prototype = {
         }
     },
     renderFrame: function() {
+        this.canvasContext = this.globalData.canvasContext;
         if (this.hidden || this.data.hd) {
             return;
         }
