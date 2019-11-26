@@ -95,7 +95,7 @@ PaintWorkletRenderer.prototype.configAnimation = function(animData, cb){
         "   paint(ctx, size, styleMap) {\n" +
         "       ctx.canvas = {width: size.width, height: size.height};\n" +
         "       if (!this.animation)\n" +
-        "           this.animation = lottiejs.loadAnimation({animationData: animData, renderer: 'canvas', rendererSettings: {context: ctx}});\n" +
+        "           this.animation = lottiejs.loadAnimation({animationData: animData, renderer: 'canvas', rendererSettings: {context: ctx, clearCanvas: false}});\n" +
         "       let progress = parseFloat(styleMap.get('" + animationProperty + "').toString());\n" +
         "       this.animation.renderer.updateContext(ctx);\n" +
         "       this.animation.setCurrentRawFrameValue(progress * this.animation.totalFrames);\n" +
