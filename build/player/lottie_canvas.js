@@ -6446,7 +6446,7 @@ CanvasRenderer.prototype.show = function(){
 
 function determinePaintWorkletScriptPath(currentScript) {
     function resolveRelative(path, relative) {
-        var abspath = path.substring(0, path.lastIndexOf('/')).split('/');
+        const abspath = path.substring(0, path.lastIndexOf('/')).split('/');
         while (relative.startsWith('../')) {
             abspath.pop();
             relative = relative.substring(3);
@@ -6455,14 +6455,14 @@ function determinePaintWorkletScriptPath(currentScript) {
     }
     if (currentScript.endsWith('/PaintWorkletRenderer.js'))
         return resolveRelative(currentScript, '../../../build/player/lottie_paintworklet.js');
-    var m = currentScript.match(/(^.*lottie)(_[^.])?(\.min)?\.js$/);
+    const m = currentScript.match(/(^.*lottie)(_[^.])?(\.min)?\.js$/);
     if (!m)
         return '';
     return m[1] + '_paintworklet.js';
 }
-var LOTTIE_SCRIPT_SRC = determinePaintWorkletScriptPath(document.currentScript.src);
-var PAINT_WORKLET_RENDERER_NUM = 1;
-var registerProperty = CSS && CSS.registerProperty;
+const LOTTIE_SCRIPT_SRC = determinePaintWorkletScriptPath(document.currentScript.src);
+let PAINT_WORKLET_RENDERER_NUM = 1;
+const registerProperty = CSS && CSS.registerProperty;
 if (registerProperty)
     registerProperty({name: '--progress', 'syntax': '<number>', inherits: false, initialValue: 0});
 
@@ -6527,11 +6527,11 @@ PaintWorkletRenderer.prototype.configAnimation = function(animData, cb){
     this.data = animData;
     this.layers = animData.layers;
     this.setupGlobalData(animData, document.body);
-    var painterName = 'lottie-pw-' + PAINT_WORKLET_RENDERER_NUM++;
-    var animationProperty = registerProperty ? '--progress' : 'object-position';
-    var painterScript = `
+    const painterName = 'lottie-pw-' + PAINT_WORKLET_RENDERER_NUM++;
+    const animationProperty = registerProperty ? '--progress' : 'object-position';
+    const painterScript = `
         import { lottiejs } from '${LOTTIE_SCRIPT_SRC}';
-        var animData = ${JSON.stringify(animData)};
+        const animData = ${JSON.stringify(animData)};
         registerPaint('${painterName}', class {
             static get inputProperties() { return ['${animationProperty}']; }
             constructor() {
@@ -6551,9 +6551,9 @@ PaintWorkletRenderer.prototype.configAnimation = function(animData, cb){
               this.animation.setCurrentRawFrameValue(progress * this.animation.totalFrames);
           }
         });`;
-    var blob = new Blob([painterScript], {type: 'text/javascript'});
-    var element = this.animationItem.wrapper;
-    var url = URL.createObjectURL(blob);
+    const blob = new Blob([painterScript], {type: 'text/javascript'});
+    const element = this.animationItem.wrapper;
+    const url = URL.createObjectURL(blob);
     CSS.paintWorklet.addModule(url).then(function() {
         element.style.backgroundImage = `paint(${painterName})`;
         cb();
