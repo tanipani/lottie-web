@@ -137,82 +137,89 @@ function noop(code) {
 function buildVersions(scripts) {
 	return new Promise((resolve, reject) => {
 		const versions = [
-		{
-			fileName: 'lottie.js',
-			build: 'full',
-			process: noop
-		},
-		{
-			fileName: 'lottie.min.js',
-			build: 'full',
-			process: uglifyCode
-		},
-		{
-			fileName: 'lottie_light.js',
-			build: 'svg_light',
-			process: noop
-		},
-		{
-			fileName: 'lottie_light.min.js',
-			build: 'svg_light',
-			process: uglifyCode
-		},
-		{
-			fileName: 'lottie_svg.js',
-			build: 'svg',
-			process: noop
-		},
-		{
-			fileName: 'lottie_svg.min.js',
-			build: 'svg',
-			process: uglifyCode
-		},
-		{
-			fileName: 'lottie_light_canvas.js',
-			build: 'canvas_light',
-			process: noop
-		},
-		{
-			fileName: 'lottie_light_canvas.min.js',
-			build: 'canvas_light',
-			process: uglifyCode
-		},
-		{
-			fileName: 'lottie_canvas.js',
-			build: 'canvas',
-			process: noop
-		},
-		{
-			fileName: 'lottie_canvas.min.js',
-			build: 'canvas',
-			process: uglifyCode
-		},
-		{
-			fileName: 'lottie_html.js',
-			build: 'html',
-			process: noop
-		},
-		{
-			fileName: 'lottie_html.min.js',
-			build: 'html',
-			process: uglifyCode
-		},
-		{
-			fileName: 'lottie_light_html.js',
-			build: 'html_light',
-			process: noop
-		},
-		{
-			fileName: 'lottie_light_html.min.js',
-			build: 'html_light',
-			process: uglifyCode
-		},
-		{ // TODO: Upgrade uglifier to support export and let and add minified build.
-			fileName: 'lottie_paintworklet.js',
-			build: 'paintworklet',
-			process: noop,
-			mode: 'es',
-		}];
+      {
+        fileName: 'lottie.js',
+        build: 'full',
+        process: noop
+      },
+      {
+        fileName: 'lottie.min.js',
+        build: 'full',
+        process: uglifyCode
+      },
+      {
+        fileName: 'lottie_light.js',
+        build: 'svg_light',
+        process: noop
+      },
+      {
+        fileName: 'lottie_light.min.js',
+        build: 'svg_light',
+        process: uglifyCode
+      },
+      {
+        fileName: 'lottie_svg.js',
+        build: 'svg',
+        process: noop
+      },
+      {
+        fileName: 'lottie_svg.min.js',
+        build: 'svg',
+        process: uglifyCode
+      },
+      {
+        fileName: 'lottie_light_canvas.js',
+        build: 'canvas_light',
+        process: noop
+      },
+      {
+        fileName: 'lottie_light_canvas.min.js',
+        build: 'canvas_light',
+        process: uglifyCode
+      },
+      {
+        fileName: 'lottie_canvas.js',
+        build: 'canvas',
+        process: noop
+      },
+      {
+        fileName: 'lottie_canvas.min.js',
+        build: 'canvas',
+        process: uglifyCode
+      },
+      {
+        fileName: 'lottie_html.js',
+        build: 'html',
+        process: noop
+      },
+      {
+        fileName: 'lottie_html.min.js',
+        build: 'html',
+        process: uglifyCode
+      },
+      {
+        fileName: 'lottie_light_html.js',
+        build: 'html_light',
+        process: noop
+      },
+      {
+        fileName: 'lottie_light_html.min.js',
+        build: 'html_light',
+        process: uglifyCode
+      },
+      {
+        fileName: 'lottie_paintworklet.js',
+        build: 'paintworklet',
+        process: noop,
+        mode: 'es',
+      },
+      {
+        fileName: 'lottie_paintworklet.min.js',
+        build: 'paintworklet',
+        process: uglifyCode,
+        mode: 'es',
+      }
+    ];
 
 		const buildProcesses = versions.map((version)=>{
 			return buildVersion(scripts, version)
