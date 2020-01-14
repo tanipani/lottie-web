@@ -1,6 +1,6 @@
 const fs = require('fs');
 const cheerio = require('cheerio');
-const UglifyJS = require("uglify-js");
+const UglifyJS = require("uglify-es");
 
 const rootFolder = 'player/';
 const bm_version = '5.5.3';
