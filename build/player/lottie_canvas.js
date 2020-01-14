@@ -6527,31 +6527,35 @@ PaintWorkletRenderer.prototype.configAnimation = function(animData, cb){
     this.data = animData;
     this.layers = animData.layers;
     this.setupGlobalData(animData, document.body);
-    // TODO: Create paintworklet.
     var painterName = 'lottie-pw-' + PAINT_WORKLET_RENDERER_NUM++;
     var animationProperty = registerProperty ? '--progress' : 'object-position';
-    var painterScript =
-        "import { lottiejs } from '" + LOTTIE_SCRIPT_SRC + "';\n" +
-        "var animData = " + JSON.stringify(animData) + ";\n" +
-        "registerPaint('" + painterName + "', class {\n" +
-        "   static get inputProperties() { return ['" + animationProperty + "']; }\n" +
-        "   constructor() {\n" +
-        "       this.animation = null;\n" +
-        "   }\n" +
-        "   paint(ctx, size, styleMap) {\n" +
-        "       ctx.canvas = {width: size.width, height: size.height};\n" +
-        "       if (!this.animation)\n" +
-        "           this.animation = lottiejs.loadAnimation({animationData: animData, renderer: 'canvas', rendererSettings: {context: ctx, clearCanvas: false}});\n" +
-        "       let progress = parseFloat(styleMap.get('" + animationProperty + "').toString());\n" +
-        "       this.animation.renderer.updateContext(ctx);\n" +
-        "       this.animation.setCurrentRawFrameValue(progress * this.animation.totalFrames);\n" +
-        "   }\n" +
-        "});";
+    var painterScript = `
+        import { lottiejs } from '${LOTTIE_SCRIPT_SRC}';
+        var animData = ${JSON.stringify(animData)};
+        registerPaint('${painterName}', class {
+            static get inputProperties() { return ['${animationProperty}']; }
+            constructor() {
+                this.animation = null;
+            }
+            paint(ctx, size, styleMap) {
+              ctx.canvas = {width: size.width, height: size.height};
+              if (!this.animation) {
+                this.animation = lottiejs.loadAnimation({
+                  animationData: animData,
+                  renderer: 'canvas',
+                  rendererSettings: {context: ctx, clearCanvas: false}
+                });
+              }
+              let progress = styleMap.get('${animationProperty}').value;
+              this.animation.renderer.updateContext(ctx);
+              this.animation.setCurrentRawFrameValue(progress * this.animation.totalFrames);
+          }
+        });`;
     var blob = new Blob([painterScript], {type: 'text/javascript'});
     var element = this.animationItem.wrapper;
     var url = URL.createObjectURL(blob);
     CSS.paintWorklet.addModule(url).then(function() {
-        element.style.backgroundImage = 'paint(' + painterName + ')';
+        element.style.backgroundImage = `paint(${painterName})`;
         cb();
     }).catch(function(err) {
         console.error('Error loading paintworklet', err);
